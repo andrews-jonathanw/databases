@@ -18,7 +18,7 @@ CREATE TABLE rooms (
 CREATE TABLE messages (
   /* Describe your table here.*/
   id INT AUTO_INCREMENT,
-  message CHAR(255),
+  text CHAR(255),
   username_id INT,
   roomname_id INT,
   PRIMARY KEY (id),
