@@ -3,36 +3,61 @@ var db = require('../db');
 
 module.exports = {
   getAll: function (callback) {
-    db.query('SELECT * FROM messages', (err, data) => {
+    db.query('SELECT users.username, rooms.roomname, messages.text from messages INNER JOIN users ON messages.username_id = users.id INNER JOIN rooms ON messages.roomname_id = rooms.id', (err, data) => {
       if (err) {
-        callback(err, null);
+        console.log(err);
       } else {
+        console.log('data from GETALL,', data);
         callback(null, data);
       }
-    })
-    // database.query(mysql query SELECT) (error,data) => {
-    /**
-     * if
-     *  error
-     *
-     * else
-     *  callback(null, data);
-     */
-  }, // a function which produces all the messages
-  create: function (username, room, msg, callback) {
-    username_id = db.query(`SELECT id FROM users WHERE username = ${username}`);
-    // console.log('usernameID', username_id);
-    roomname_id = db.query(`SELECT id FROM rooms WHERE roomname = ${room}`);
-    // console.log('roomsID', roomname_id);
+    });
+  },
 
-    db.query(`INSERT INTO messages(text, username_id, roomname_id) VALUES(${msg}, ${username_id}, ${roomname_id})`, (err, data) => {
-      if (err) {
-        callback(err, null);
+  // a function which produces all the messages
+  create: function (username, msg, room, callback) {
+    /* GET USERNAME FROM TABLE */
+    db.query('SELECT id FROM users WHERE username = ?', [username], (error, userData) => {
+      if (error) {
+        console.log('line 28 error in messages models', error);
       } else {
-        // need to stringify here for controller
-        callback(null, JSON.stringify(data));
+        console.log('userDATA: ', userData);
+        var usernameid = userData[0].id;
+        /* GET ROOMNAME FROM TABLE */
+        db.query('SELECT id FROM rooms WHERE roomname = ?', [room], (error, roomData) => {
+          if (error) {
+            console.log('line 35 error in messages models');
+          } else {
+            console.log('roomData: ', roomData);
+            if (roomData[0] === undefined) {
+              db.query('INSERT INTO rooms (roomname) VALUES(?)', [room], (err, data) => {
+                console.log(data);
+                var roomnameid = data.insertId;
+                db.query('INSERT INTO messages(text, username_id, roomname_id) VALUES(?, ?, ?)', [msg, usernameid, roomnameid], (err, data) => {
+                  console.log('final messages POST,', data);
+                  if (err) {
+                    console.log('line 41 error in messages models', err);
+                  } else {
+                    // need to stringify here for controller
+                    callback(null, JSON.stringify(data));
+                  }
+                });
+              });
+            } else {
+              roomnameid = roomData[0].id;
+              db.query('INSERT INTO messages(text, username_id, roomname_id) VALUES(?, ?, ?)', [msg, usernameid, roomnameid], (err, data) => {
+                console.log('final messages POST,', data);
+                if (err) {
+                  console.log('line 41 error in messages models', err);
+                } else {
+                  // need to stringify here for controller
+                  callback(null, JSON.stringify(data));
+                }
+              });
+            }
+          }
+        });
       }
     });
-  } // a function which can be used to insert a message into the database
+  }
 };
 
